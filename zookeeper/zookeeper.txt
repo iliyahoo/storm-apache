@@ -19,6 +19,8 @@ dataLogDir=/var/zookeeper/<mounted_device>
 clientPort=2181
 initLimit=5
 syncLimit=2
+autopurge.purgeInterval=1
+autopurge.snapRetainCount=3
 server.1=zookeeper1:2888:3888
 server.2=zookeeper2:2888:3888
 server.3=zookeeper3:2888:3888
@@ -39,8 +41,6 @@ bin/zkServer.sh start
 ### Maintanance ###
 ###################
 
-#sync time
-
 # a deployment of N machines can handle
 # math.ceil(N / 2.0) - 1      failures
 
@@ -48,6 +48,10 @@ bin/zkServer.sh start
 
 # cleanup logs and snapshots by executing cron job
 zkCleanup.sh /var/zookeeper /var/zookeeper/data /var/zookeeper/<mounted_device> -n <min 3>
+# or use the following parameters in the zoo.cfg
+# ZooKeeper versions < 3.4.x do not support auto-purging
+autopurge.purgeInterval=1
+autopurge.snapRetainCount=3
 
 # cleanup debug logs with log4j
 
@@ -56,3 +60,24 @@ telnet 172.28.128.10 <clientPort>
 stat
 # check error
 ruok
+
+ln -s /srv/zookeeper-3.4.6 /srv/zookeeper
+
+# supervisord service
+wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+yum -y localinstall epel-release-latest-7.noarch.rpm
+
+yum -y install supervisor
+systemctl enable supervisord.service
+systemctl start supervisord.service
+
+cat << EOF > /etc/supervisord.d/zk.ini
+[program:zookeeper]
+command=/srv/zookeeper/bin/zkServer.sh start-foreground
+autorestart=true
+stopsignal=KILL
+stderr_logfile=/var/log/supervisor-zookeeper.err.log
+stdout_logfile=/var/log/supervisor-zookeeper.out.log
+EOF
+
+supervisorctl reload
