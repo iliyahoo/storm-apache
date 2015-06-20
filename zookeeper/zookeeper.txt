@@ -1,0 +1,58 @@
+systemctl stop firewalld
+systemctl disable firewalld
+
+# install java
+yum install -y java-1.8.0-openjdk
+
+# install zk
+wget http://apache.mivzakim.net/zookeeper/current/zookeeper-3.4.6.tar.gz
+tar -zxvf zookeeper-3.4.6.tar.gz -C /srv
+
+# use a maximum heap size of 3GB for a 4GB machine
+# make certain that the maximum heap size given to ZooKeeper is not bigger than the amount of real memory available to ZooKeeper
+echo export _JAVA_OPTIONS="-Xmx512m" > /etc/exports
+
+cat << EOF > /srv/zookeeper-3.4.6/bin/../conf/zoo.cfg
+tickTime=2000
+dataDir=/var/zookeeper/data
+dataLogDir=/var/zookeeper/<mounted_device>
+clientPort=2181
+initLimit=5
+syncLimit=2
+server.1=zookeeper1:2888:3888
+server.2=zookeeper2:2888:3888
+server.3=zookeeper3:2888:3888
+EOF
+
+cat << EOF > /etc/hosts
+172.28.128.10    zookeeper1
+172.28.128.11    zookeeper2
+172.28.128.12    zookeeper3
+EOF
+
+echo ${HOSTNAME} | tr -d '[a-z]' > /var/zookeeper/data/myid
+
+cd /srv/zookeeper-3.4.6
+bin/zkServer.sh start
+
+###################
+### Maintanance ###
+###################
+
+#sync time
+
+# a deployment of N machines can handle
+# math.ceil(N / 2.0) - 1      failures
+
+# ZooKeeper's transaction log must be on a dedicated device. (A dedicated partition is not enough.) It is highly recommened to dedicate a log device and set dataLogDir to point to a directory on that device, and then make sure to point dataDir to a directory not residing on that device.
+
+# cleanup logs and snapshots by executing cron job
+zkCleanup.sh /var/zookeeper /var/zookeeper/data /var/zookeeper/<mounted_device> -n <min 3>
+
+# cleanup debug logs with log4j
+
+telnet 172.28.128.10 <clientPort>
+# get statistics
+stat
+# check error
+ruok

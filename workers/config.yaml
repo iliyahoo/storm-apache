@@ -1,0 +1,34 @@
+---
+vagrantfile:
+    box: iliya/centos-7
+    hosts:
+      - worker1
+      - worker2
+#      - zookeeper3
+    worker1:
+        role: master
+        ip: 172.28.128.14
+    worker2:
+        role: minion
+        ip: 172.28.128.15
+    zookeeper3:
+        role: minion
+        ip: 172.28.128.12
+    synced_folder:
+        devops:
+            source: .
+            target: /vagrant
+    auth:
+        private_key: /home/iliya/.ssh/id_dsa
+    provision:
+        salt: ./salt-bootstrap.sh
+        version: 2014.7.0
+        repo: https://github.com/saltstack/salt.git
+#        repo: https://storage.googleapis.com/salt-repo/salt.git
+
+## [[ -d $HOME/.vagrant.d/boxes/ubuntu_12.04 ]] || vagrant box add ubuntu_12.04 https://cloud-images.ubuntu.com/vagrant/precise/current/precise-server-cloudimg-amd64-vagrant-disk1.box
+## [[ -d $HOME/.vagrant.d/boxes/centos7 ]] || vagrant box add centos7 https://f0fff3908f081cb6461b407be80daf97f07ac418.googledrive.com/host/0BwtuV7VyVTSkUG1PM3pCeDJ4dVE/centos7.box
+## cd some_folder
+## vagrant package --base vagrant-salt_minion-1_1429901246439_97751 --output centos-7 --vagrantfile Vagrantfile --include salt-bootstrap.sh,install_salt.sh,config.yaml
+## vagrant box add --name iliya/centos-7 --provider virtualbox some_folder/centos-7
+## vagrant up
