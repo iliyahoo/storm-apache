@@ -1,6 +1,7 @@
 ---
 vagrantfile:
     box: iliya/centos-7
+    interface: wlp6s0
     hosts:
       - worker1
       - worker2

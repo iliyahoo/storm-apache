@@ -3,18 +3,18 @@ vagrantfile:
     box: iliya/centos-7
     interface: wlp6s0
     hosts:
-      - nimbus
-#      - zookeeper2
-#      - zookeeper3
-    nimbus:
+      - kafka1
+      - kafka2
+      - kafka3
+    kafka1:
         role: master
-        ip: 172.28.128.13
-    zookeeper2:
+        ip: 172.28.128.16
+    kafka2:
         role: minion
-        ip: 172.28.128.11
-    zookeeper3:
+        ip: 172.28.128.17
+    kafka3:
         role: minion
-        ip: 172.28.128.12
+        ip: 172.28.128.18
     synced_folder:
         devops:
             source: .

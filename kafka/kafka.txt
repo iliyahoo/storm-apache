@@ -1,0 +1,43 @@
+systemctl stop firewalld
+systemctl disable firewalld
+
+# install java
+yum install -y java-1.8.0-openjdk
+
+wget http://apache.mivzakim.net/kafka/0.8.2.1/kafka_2.9.1-0.8.2.1.tgz
+tar -xvf kafka_2.9.1-0.8.2.1.tgz
+mv kafka_2.9.1-0.8.2.1 /srv/
+ln -s /srv/kafka_2.9.1-0.8.2.1 /srv/kafka
+cd /srv/kafka
+
+# on one of the zookeeper's node create the kafaka's path
+bin/zkCli.sh -server 127.0.0.1:2181
+create /kafka ''
+
+# edit config/server.properties
+broker.id=1
+zookeeper.connect=172.28.128.10:2181,172.28.128.11:2181,172.28.128.12:2181/kafka
+
+bin/kafka-server-start.sh config/server.properties
+
+# supervisord
+wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+yum -y localinstall epel-release-latest-7.noarch.rpm
+
+yum -y install supervisor
+systemctl enable supervisord.service
+systemctl start supervisord.service
+
+cat << EOF > /etc/supervisord.d/kafka.ini
+[program:kafka]
+command=/srv/kafka/bin/kafka-server-start.sh /srv/kafka/config/server.properties
+autostart=true
+startsecs=10
+startretries=9
+logfile_maxbytes=20MB
+logfile_backups=10
+stderr_logfile=/var/log/supervisor-kafka.err.log
+stdout_logfile=/var/log/supervisor-kafka.out.log
+EOF
+
+supervisorctl reload

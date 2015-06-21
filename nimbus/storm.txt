@@ -11,10 +11,12 @@ ln -s apache-storm-0.9.5 storm
 cd /srv/storm
 
 cat << EOF > conf/storm.yaml
+# https://github.com/apache/storm/blob/master/conf/defaults.yaml
 storm.zookeeper.servers:
     - "172.28.128.10"
     - "172.28.128.11"
     - "172.28.128.12"
+storm.zookeeper.root: "/storm"
 storm.local.dir: "/app/storm"
 nimbus.host: "172.28.128.13"
 #nimbus.childopts: "-Xmx768m-Djava.net.preferIPv4Stack=true"
