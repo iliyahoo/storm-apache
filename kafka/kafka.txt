@@ -10,7 +10,7 @@ mv kafka_2.9.1-0.8.2.1 /srv/
 ln -s /srv/kafka_2.9.1-0.8.2.1 /srv/kafka
 cd /srv/kafka
 
-# on one of the zookeeper's node create the kafaka's path
+# on one of the zookeeper's node create the kafka's root path:
 bin/zkCli.sh -server 127.0.0.1:2181
 create /kafka ''
 
@@ -41,3 +41,10 @@ stdout_logfile=/var/log/supervisor-kafka.out.log
 EOF
 
 supervisorctl reload
+
+# some commands for testing
+bin/kafka-console-consumer.sh --zookeeper zookeeper1:2181,zookeeper2:2181,zookeeper3:2181/kafka --topic topic-1 --from-beginning
+
+bin/kafka-console-producer.sh --broker-list  172.28.128.16:9092,172.28.128.17:9092,172.28.128.18:9092 --topic topic-1
+
+

@@ -1,0 +1,17 @@
+systemctl stop firewalld
+systemctl disable firewalld
+
+# install couchbase
+cd /vagrant
+wget http://packages.couchbase.com/releases/3.0.3/couchbase-server-enterprise-3.0.3-centos6.x86_64.rpm
+yum install -y couchbase-server-enterprise-3.0.3-centos6.x86_64.rpm
+
+cat << EOF >> /etc/hosts
+172.28.128.19 couchbase1.local
+172.28.128.20 couchbase2.local
+EOF
+
+
+# The maximal value of the replica number in couchbase is 3
+# Each node has its data replicated to 3 other nodes, so you could handle 3 node failures in your cluster.
+# optionally create replica indexes on nodes that are contain replicated data; this is to prepare your cluster for a failover scenario
