@@ -2,7 +2,7 @@ systemctl stop firewalld
 systemctl disable firewalld
 
 # install java
-yum install -y java-1.8.0-openjdk
+yum install -y java-1.8.0-openjdk nmap-ncat
 
 # install zk
 wget http://apache.mivzakim.net/zookeeper/current/zookeeper-3.4.6.tar.gz
@@ -12,30 +12,51 @@ tar -zxvf zookeeper-3.4.6.tar.gz -C /srv
 # make certain that the maximum heap size given to ZooKeeper is not bigger than the amount of real memory available to ZooKeeper
 echo export _JAVA_OPTIONS="-Xmx512m" > /etc/exports
 
+mkdir -p /var/zookeeper/{log,data}
+
 cat << EOF > /srv/zookeeper-3.4.6/bin/../conf/zoo.cfg
+# session timeout will be 2 < tickTime < 20
+# tickTime measured in milliseconds
 tickTime=2000
+# dataDir stores database snapshots
 dataDir=/var/zookeeper/data
+# dataLogDir stores transaction log of updates to the database
 dataLogDir=/var/zookeeper/<mounted_device>
 clientPort=2181
+# initLimit parameter is the timeout, specified in number of ticks, for a follower to initially connect to a leader
 initLimit=5
+# syncLimit is the timeout, specified in number of ticks, for a follower to sync with a leader
 syncLimit=2
 autopurge.purgeInterval=1
 autopurge.snapRetainCount=3
+# port 2888 is mostly used for peer-to-peer communication
+# port 3888 is mostly used for leader election
 server.1=zookeeper1:2888:3888
 server.2=zookeeper2:2888:3888
 server.3=zookeeper3:2888:3888
+# Leader doesn't accept client connections
+# it's highly recommended when you have more than three ZooKeeper servers in an ensemble
+leaderServes=no
 EOF
 
-cat << EOF > /etc/hosts
+# edit /etc/hosts file
+# to open 3888 port world-wide remove hostname from the loopback address
+sed -i "/127.0.0.1/ s/$HOSTNAME//g" /etc/hosts
+
+cat << EOF >> /etc/hosts
 172.28.128.10    zookeeper1
 172.28.128.11    zookeeper2
 172.28.128.12    zookeeper3
 EOF
 
-echo ${HOSTNAME} | tr -d '[a-z]' > /var/zookeeper/data/myid
+# myid file should consist of a single line that contains only the server's ID in ASCII format. The id must be unique within the ensemble and should have a value between 1 and 255
+echo ${HOSTNAME} | tr -d '[a-z-.]' > /var/zookeeper/data/myid
 
-cd /srv/zookeeper-3.4.6
-bin/zkServer.sh start
+ln -s /srv/zookeeper-3.4.6 /srv/zookeeper
+echo "export ZK_HOME=/srv/zookeeper" >> ~/.bash_profile
+echo "PATH=$PATH:/srv/zookeeper/bin" >> ~/.bash_profile
+. ~/.bash_profile
+zkServer.sh start
 
 ###################
 ### Maintanance ###
@@ -50,18 +71,21 @@ bin/zkServer.sh start
 zkCleanup.sh /var/zookeeper /var/zookeeper/data /var/zookeeper/<mounted_device> -n <min 3>
 # or use the following parameters in the zoo.cfg
 # ZooKeeper versions < 3.4.x do not support auto-purging
-autopurge.purgeInterval=1
-autopurge.snapRetainCount=3
+  autopurge.purgeInterval=1
+  autopurge.snapRetainCount=3
 
 # cleanup debug logs with log4j
 
-telnet 172.28.128.10 <clientPort>
+# monitor cluster using "Four Letter Words"
+echo cons | nc 172.28.128.10 <clientPort>
 # get statistics
 stat
 # check error
 ruok
 
-ln -s /srv/zookeeper-3.4.6 /srv/zookeeper
+# create the root path for the kafka:
+zkCli.sh -server zookeeper1:2181,zookeeper2:2181,zookeeper3:2181
+create /kafka ''
 
 # supervisord service
 wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
@@ -81,3 +105,12 @@ stdout_logfile=/var/log/supervisor-zookeeper.out.log
 EOF
 
 supervisorctl reload
+
+# build C-based shell required for distributed applications written in the C programming language
+cd /srv/zookeeper/src/c/
+./configure
+make
+make install
+
+# connect
+cli_mt localhost:2181
