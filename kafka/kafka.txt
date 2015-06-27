@@ -18,6 +18,7 @@ create /kafka ''
 sed -i "s|^\(zookeeper.connect=\).*|\1172.28.128.10:2181,172.28.128.11:2181,172.28.128.12:2181/kafka|g" /srv/kafka/config/server.properties
 id=$(echo ${HOSTNAME} | tr -d '[a-z-.]')
 sed -i "s/\(broker.id=\).*/\1$id/g" /srv/kafka/config/server.properties
+echo "delete.topic.enable=true" >> /srv/kafka/config/server.properties
 
 echo "PATH=$PATH:/srv/kafka/bin" >> ~/.bash_profile
 . ~/.bash_profile
@@ -51,4 +52,20 @@ kafka-console-consumer.sh --zookeeper zookeeper1:2181,zookeeper2:2181,zookeeper3
 
 kafka-console-producer.sh --broker-list 172.28.128.16:9092,172.28.128.17:9092,172.28.128.18:9092 --topic topic-1
 
+kafka-topics.sh --zookeeper 172.28.128.10:2181,172.28.128.11:2181,172.28.128.12:2181/kafka --describe --topic topic-1
 
+# validate using the consumer offset checker
+# create node on zookeeper
+create /kafka/consumers/<consumer_group>/owners ''
+kafka-run-class.sh kafka.tools.ConsumerOffsetChecker --zookeeper 172.28.128.10:2181,172.28.128.11:2181,172.28.128.12:2181/kafka --broker-info --group <consumer_group> --topic topic-1
+
+# every replica in ISR has all messages that are committed. A replica will be dropped out of ISR if it diverges from the leader. This is controlled by two parameters: replica.lag.time.max.ms and replica.lag.max.messages. The former is typically set to a value that reliably detects the failure of a broker. We have a min fetch rate JMX in the broker. If that rate is n, set the former to a value larger than 1/n * 1000. The latter is typically set to the observed max lag (a JMX bean) in the follower. Note that if replica.lag.max.messages is too large, it can increase the time to commit a message. If latency becomes a problem, you can increase the number of partitions in a topic. If a replica constantly drops out of and rejoins isr, you may need to increase replica.lag.max.messages. If a replica stays out of ISR for a long time, it may indicate that the follower is not able to fetch data as fast as data is accumulated at the leader. You can increase the follower's fetch throughput by setting a larger value for num.replica.fetchers
+
+# replica.fetch.max.bytes == message.max.bytes
+
+# ISR drops batch messages if they more than 4000 messages behind the leader
+# so split them
+
+# out of memory
+replica.message.max.bytes * N of partitions the broker replicates
+fetch.message.max.bytes * N of partitions the consumer reads
