@@ -11,7 +11,24 @@ cat << EOF >> /etc/hosts
 172.28.128.20 couchbase2.local
 EOF
 
-
 # The maximal value of the replica number in couchbase is 3
 # Each node has its data replicated to 3 other nodes, so you could handle 3 node failures in your cluster.
 # optionally create replica indexes on nodes that are contain replicated data; this is to prepare your cluster for a failover scenario
+
+# Otimization:
+  CPU:
+    min 4 cores
+    + 1 core for design document
+    + 1 core per XDCR replicated bucket
+      XDCR = cross data center replication
+
+  Disk:
+    multiple EBS volumes High IOPS Raid 0 on Amazon
+    use different file systems for databases and indices
+
+  RAM:
+    OS memory (recomended ~ 60%)
+    Metadata: (64 bytes + key_length) * all_documents
+    Document Values: NRU ejected if RAM Quota Used > 90%
+      NRU = not recently used
+    Use Value eviction: consumes more memory but provides the best performance
