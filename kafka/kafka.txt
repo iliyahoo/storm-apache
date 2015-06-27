@@ -11,7 +11,7 @@ ln -s /srv/kafka_2.9.1-0.8.2.1 /srv/kafka
 cd /srv/kafka
 
 # on one of the zookeeper's node create the kafka's root path:
-bin/zkCli.sh -server 127.0.0.1:2181
+zkCli.sh -server 127.0.0.1:2181
 create /kafka ''
 
 # edit config/server.properties
