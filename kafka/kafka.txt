@@ -15,10 +15,14 @@ zkCli.sh -server 127.0.0.1:2181
 create /kafka ''
 
 # edit config/server.properties
-broker.id=1
-zookeeper.connect=172.28.128.10:2181,172.28.128.11:2181,172.28.128.12:2181/kafka
+sed -i "s|^\(zookeeper.connect=\).*|\1172.28.128.10:2181,172.28.128.11:2181,172.28.128.12:2181/kafka|g" /srv/kafka/config/server.properties
+id=$(echo ${HOSTNAME} | tr -d '[a-z-.]')
+sed -i "s/\(broker.id=\).*/\1$id/g" /srv/kafka/config/server.properties
 
-bin/kafka-server-start.sh config/server.properties
+echo "PATH=$PATH:/srv/kafka/bin" >> ~/.bash_profile
+. ~/.bash_profile
+
+kafka-server-start.sh config/server.properties
 
 # supervisord
 wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
@@ -43,8 +47,8 @@ EOF
 supervisorctl reload
 
 # some commands for testing
-bin/kafka-console-consumer.sh --zookeeper zookeeper1:2181,zookeeper2:2181,zookeeper3:2181/kafka --topic topic-1 --from-beginning
+kafka-console-consumer.sh --zookeeper zookeeper1:2181,zookeeper2:2181,zookeeper3:2181/kafka --topic topic-1 --from-beginning
 
-bin/kafka-console-producer.sh --broker-list  172.28.128.16:9092,172.28.128.17:9092,172.28.128.18:9092 --topic topic-1
+kafka-console-producer.sh --broker-list 172.28.128.16:9092,172.28.128.17:9092,172.28.128.18:9092 --topic topic-1
 
 
