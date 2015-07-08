@@ -108,3 +108,10 @@ stderr_logfile=/var/log/storm/node.err.log
 EOF
 
 supervisorctl reload
+
+# fault-tolerant system
+https://storm.apache.org/documentation/Fault-tolerance.html
+
+# scaling-apache-storm
+http://www.slideshare.net/ptgoetz/scaling-apache-storm-strata-hadoopworld-2014
+https://www.youtube.com/watch?v=cH8hKyf4Y40

@@ -5,16 +5,16 @@ vagrantfile:
     hosts:
       - couchbase1
       - couchbase2
-#      - zookeeper3
+      - couchbase3
     couchbase1:
         role: master
         ip: 172.28.128.19
     couchbase2:
         role: minion
         ip: 172.28.128.20
-    zookeeper3:
+    couchbase3:
         role: minion
-        ip: 172.28.128.12
+        ip: 172.28.128.21
     synced_folder:
         devops:
             source: .

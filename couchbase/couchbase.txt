@@ -6,9 +6,13 @@ cd /vagrant
 wget http://packages.couchbase.com/releases/3.0.3/couchbase-server-enterprise-3.0.3-centos6.x86_64.rpm
 yum install -y couchbase-server-enterprise-3.0.3-centos6.x86_64.rpm
 
+# append to ~/.bash_profile file
+PATH=$PATH:/opt/couchbase/bin
+
 cat << EOF >> /etc/hosts
-172.28.128.19 couchbase1.local
-172.28.128.20 couchbase2.local
+172.28.128.19 couchbase1.localhost
+172.28.128.20 couchbase2.localhost
+172.28.128.21 couchbase3.localhost
 EOF
 
 # The maximal value of the replica number in couchbase is 3
@@ -32,3 +36,45 @@ EOF
     Document Values: NRU ejected if RAM Quota Used > 90%
       NRU = not recently used
     Use Value eviction: consumes more memory but provides the best performance
+
+###############
+
+CLI and REST APIs are the commended ways to make configuration changes
+
+Minimum Nodes Automatic failover is only available on clusters of at least three nodes.
+
+Only one auto-failover is allowed for the Couchbase Server in order to avoid cascading failures.
+
+Failover Delay There is a minimum 30 second delay before a node will be failed over. This time can be raised, but the software is hard coded to perform multiple pings of a node that may be down. This is to prevent failover of a functioning but slow node or to prevent network connection issues from triggering failover.
+
+
+
+connection="--cluster=couchbase1.localhost:8091 -u Administrator -p Administrator"
+
+--- Auto-Failover ---
+couchbase-cli setting-autofailover $connection --enable-auto-failover=1 --auto-failover-timeout=30
+
+#Resetting the Automatic failover counter
+#After a node has been automatically failed over, Couchbase Server increments an internal counter that indicates if a node has been failed over. This counter prevents the server from automatically failing over additional nodes until you identify the issue that caused the failover and resolve it. If the internal counter indicates a node has failed over, the server will no longer automatically failover additional nodes in the cluster. You will need to re-enable automatic failover in a cluster by resetting this counter.
+
+curl -i -u Administrator:Administrator http://couchbase1.localhost:8091/settings/autoFailover/resetCount
+-----------------------
+
+
+couchbase-cli server-add $connection --server-add=couchbase3.localhost:8091 --server-add-username=Administrator --server-add-password=Administrator
+
+couchbase-cli rebalance $connection
+
+couchbase-cli failover $connection --server-failover=couchbase3:8091
+
+couchbase-cli server-info $connection
+
+couchbase-cli server-list $connection
+
+couchbase-cli node-init $connection --node-init-data-path={{ cfg.data_dir }} --node-init-index-path={{ cfg.index_dir }}
+
+couchbase-cli cluster-init -c {{ hostname }}:{{ cluster.admin_port }} --cluster-init-username={{ cluster.user }} --cluster-init-password={{ cluster.pass }} --cluster-init-port={{ cluster.admin_port }} --cluster-init-ramsize={{ cluster.ram }} -u {{ cluster.user }} -p {{cluster.pass }}
+
+couchbase-cli bucket-create $connection --wait --bucket={{ name }} --bucket-type=couchbase --bucket-port={{ params.port }} --bucket-ramsize={{ params.ram_size }}  --bucket-replica={{ params.replicas }}
+
+couchbase-cli bucket-list $connection

@@ -69,3 +69,13 @@ kafka-run-class.sh kafka.tools.ConsumerOffsetChecker --zookeeper 172.28.128.10:2
 # out of memory
 replica.message.max.bytes * N of partitions the broker replicates
 fetch.message.max.bytes * N of partitions the consumer reads
+
+# Synchronous replication
+Our synchronous replication follows the typical primary-backup approach. Each partition has n replicas and can tolerate n-1 replica failures. One of the replicas is elected as the leader and the rest of the replicas are followers. The leader maintains a set of in-sync replicas (ISR): the set of replicas that have fully caught up with the leader. For each partition, we store in Zookeeper the current leader and the current ISR.
+Each replica stores messages in a local log and maintains a few important offset positions in the log (depicted in Figure 1). The log end offset (LEO) represents the tail of the log. The high watermark (HW) is the offset of the last committed message. Each log is periodically synced to disks. Data before the flushed offset is guaranteed to be persisted on disks. As we will see, the flush offset can be before or after HW.
+
+# kafka replication
+https://cwiki.apache.org/confluence/display/KAFKA/Kafka+Replication
+
+# benchmarking kafka
+http://engineering.linkedin.com/kafka/benchmarking-apache-kafka-2-million-writes-second-three-cheap-machines
